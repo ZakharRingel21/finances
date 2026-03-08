@@ -362,7 +362,7 @@
       <input id="f-card-name" placeholder="Напр. Тинькофф">
     </div>
     <div class="field">
-      <label>Текущий баланс (₽)</label>
+      <label>Текущий баланс (Br)</label>
       <input id="f-card-bal" type="number" placeholder="0">
     </div>
     <div class="field">
@@ -414,7 +414,7 @@
   <div class="modal">
     <div class="modal-title" id="mo-exp-title">Добавить трату</div>
     <div class="field">
-      <label>Сумма (₽)</label>
+      <label>Сумма (Br)</label>
       <input id="f-exp-amount" type="number" placeholder="0">
     </div>
     <div class="field-row">
@@ -448,7 +448,7 @@
   <div class="modal">
     <div class="modal-title" id="mo-topup-title">Пополнить карту</div>
     <div class="field">
-      <label>Сумма пополнения (₽)</label>
+      <label>Сумма пополнения (Br)</label>
       <input id="f-topup-amount" type="number" placeholder="0">
     </div>
     <div class="field">
@@ -497,7 +497,7 @@ function todayYM() {
 function todayISO() { return new Date().toISOString().split('T')[0]; }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function money(n) {
-  return new Intl.NumberFormat('ru-RU', { style:'currency', currency:'RUB', maximumFractionDigits:0 }).format(n||0);
+  return new Intl.NumberFormat('ru-BY', { style:'currency', currency:'BYN' }).format(n||0);
 }
 function fmtMonth(ym) {
   const [y,m] = ym.split('-');
