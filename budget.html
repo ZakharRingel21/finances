@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Бюджет — Трекер трат</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-l: #818cf8;
+      --success: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px; min-height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+    }
+    .logo {
+      padding: 22px 18px 18px; font-size: 17px; font-weight: 800;
+      color: var(--primary); border-bottom: 1px solid var(--border); letter-spacing: -.5px;
+    }
+    nav { padding: 10px 8px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 500; color: var(--muted);
+      transition: all .15s; user-select: none; margin-bottom: 2px;
+    }
+    .nav-item .ico { font-size: 16px; }
+    .nav-item:hover { background: var(--bg); color: var(--text); }
+    .nav-item.active { background: #eef2ff; color: var(--primary); font-weight: 600; }
+
+    /* ── Main ── */
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; }
+
+    /* ── Pages ── */
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-head {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 22px;
+    }
+    h1 { font-size: 22px; font-weight: 700; }
+
+    /* ── Stats row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 22px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+    }
+    .stat-label {
+      font-size: 11px; color: var(--muted); font-weight: 600;
+      margin-bottom: 7px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .stat-val { font-size: 26px; font-weight: 700; }
+    .stat-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
+    .stat-detail-row { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+    .stat-detail-row .ico { font-size: 14px; flex-shrink: 0; }
+    .stat-detail-row .lbl { flex: 1; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-detail-row .amt { font-weight: 700; flex-shrink: 0; }
+
+    /* ── Surface card ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 16px;
+    }
+    .card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      font-weight: 600; font-size: 14px;
+    }
+    .card-body { padding: 16px 18px; }
+
+    /* ── Grid ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 15px; border-radius: 8px; border: none;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: all .15s; white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { filter: brightness(1.1); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { filter: brightness(1.1); }
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+    .btn-icon { padding: 6px 8px; border-radius: 7px; font-size: 13px; }
+
+    /* ── Bank card item ── */
+    .bank-card-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 10px; background: var(--surface);
+    }
+    .bank-card-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .bank-card-info { flex: 1; }
+    .bank-card-name { font-weight: 600; font-size: 14px; }
+    .bank-card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .bank-card-balance { font-size: 20px; font-weight: 700; }
+
+    /* ── Category row ── */
+    .cat-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .cat-item:last-child { border-bottom: none; }
+    .cat-item:hover { opacity: .85; }
+    .cat-ico {
+      width: 38px; height: 38px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 19px; flex-shrink: 0;
+    }
+    .cat-info { flex: 1; min-width: 0; }
+    .cat-name { font-size: 14px; font-weight: 600; }
+    .progress { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+    .cat-meta {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted); margin-top: 4px;
+    }
+
+    /* ── Expense row ── */
+    .exp-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .exp-item:last-child { border-bottom: none; }
+    .exp-item:hover { opacity: .85; }
+    .exp-ico {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
+    }
+    .exp-info { flex: 1; min-width: 0; }
+    .exp-cat { font-size: 13px; font-weight: 600; }
+    .exp-note { font-size: 12px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .exp-right { text-align: right; flex-shrink: 0; }
+    .exp-amount { font-size: 15px; font-weight: 700; color: var(--danger); }
+    .exp-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 36px 0; color: var(--muted); }
+    .empty .e-ico { font-size: 42px; margin-bottom: 10px; }
+    .empty p { font-size: 14px; }
+
+    /* ── Month nav ── */
+    .month-nav { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+    .mnav-btn {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      padding: 3px 10px; cursor: pointer; font-size: 15px; color: var(--muted);
+    }
+    .mnav-btn:hover { background: var(--bg); }
+
+    /* ── Filter bar ── */
+    .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+    .filter-bar select, .filter-bar input {
+      padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13px; outline: none; background: var(--bg); color: var(--text);
+    }
+
+    /* ── Modal ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,.45);
+      z-index: 200; display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #fff; border-radius: 14px; padding: 26px 28px;
+      width: 420px; max-width: calc(100vw - 28px); max-height: 92vh; overflow-y: auto;
+      transform: translateY(14px) scale(.98); transition: transform .2s;
+    }
+    .overlay.open .modal { transform: translateY(0) scale(1); }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 18px; }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 700; color: var(--muted);
+      margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .field input, .field select {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px; outline: none; color: var(--text);
+    }
+    .field input:focus, .field select:focus { border-color: var(--primary); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-foot { display: flex; align-items: center; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .modal-foot .del-btn { margin-right: auto; }
+
+    /* ── Color picker ── */
+    .colors { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 2px; }
+    .c-swatch {
+      width: 26px; height: 26px; border-radius: 50%;
+      cursor: pointer; border: 2px solid transparent; transition: all .12s;
+    }
+    .c-swatch.sel { border-color: #1e293b; transform: scale(1.15); }
+
+    /* ── Icon picker ── */
+    .icons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+    .i-chip {
+      width: 36px; height: 36px; border: 1px solid var(--border);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 18px; transition: all .12s;
+    }
+    .i-chip:hover, .i-chip.sel { border-color: var(--primary); background: #eef2ff; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 16px; }
+      .stats-row { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* ── Loading overlay ── */
+    #app-loading {
+      position: fixed; inset: 0; background: var(--bg);
+      z-index: 9999; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+    }
+    #app-loading .spin {
+      width: 44px; height: 44px; border: 4px solid var(--border);
+      border-top-color: var(--primary); border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #app-loading p { color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ LOADING ══════════ -->
+<div id="app-loading">
+  <div class="spin"></div>
+  <p>Загрузка данных…</p>
+</div>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sidebar">
+  <div class="logo">💰 Бюджет</div>
+  <nav>
+    <div class="nav-item active" data-p="dashboard"><span class="ico">📊</span> Обзор</div>
+    <div class="nav-item" data-p="cards"><span class="ico">💳</span> Карты</div>
+    <div class="nav-item" data-p="categories"><span class="ico">🏷️</span> Категории</div>
+    <div class="nav-item" data-p="expenses"><span class="ico">📝</span> Транзакции</div>
+  </nav>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<main class="main">
+
+  <!-- Dashboard -->
+  <section class="page active" id="pg-dashboard">
+    <div class="page-head">
+      <h1>Обзор</h1>
+      <div class="month-nav">
+        <button class="mnav-btn" id="prev-m">‹</button>
+        <span id="m-label"></span>
+        <button class="mnav-btn" id="next-m">›</button>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Общий баланс</div>
+        <div class="stat-val" id="s-balance" style="color:var(--primary)">—</div>
+        <div class="stat-detail" id="s-balance-detail"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Потрачено за месяц</div>
+        <div class="stat-val" id="s-spent" style="color:var(--danger)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Осталось по лимитам</div>
+        <div class="stat-val" id="s-left" style="color:var(--success)">—</div>
+        <div class="stat-detail" id="s-left-detail"></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          Категории
+          <span id="d-month-sub" style="font-weight:400;color:var(--muted);font-size:12px"></span>
+        </div>
+        <div class="card-body" id="d-cats"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">Последние траты</div>
+        <div class="card-body" id="d-exps"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cards -->
+  <section class="page" id="pg-cards">
+    <div class="page-head">
+      <h1>Карты</h1>
+      <button class="btn btn-primary" id="add-card-btn">+ Добавить карту</button>
+    </div>
+    <div id="cards-list"></div>
+  </section>
+
+  <!-- Categories -->
+  <section class="page" id="pg-categories">
+    <div class="page-head">
+      <h1>Категории</h1>
+      <button class="btn btn-primary" id="add-cat-btn">+ Добавить категорию</button>
+    </div>
+    <div class="card">
+      <div class="card-body" id="cats-list"></div>
+    </div>
+  </section>
+
+  <!-- Expenses -->
+  <section class="page" id="pg-expenses">
+    <div class="page-head">
+      <h1>Транзакции</h1>
+      <button class="btn btn-primary" id="add-exp-btn">+ Добавить трату</button>
+    </div>
+    <div class="card">
+      <div class="filter-bar">
+        <select id="f-cat"><option value="">Все категории</option></select>
+        <select id="f-card"><option value="">Все карты</option></select>
+        <input type="month" id="f-month">
+      </div>
+      <div class="card-body" id="exps-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════ MODAL: Card ══════════ -->
+<div class="overlay" id="mo-card">
+  <div class="modal">
+    <div class="modal-title" id="mo-card-title">Добавить карту</div>
+    <div class="field">
+      <label>Название</label>
+      <input id="f-card-name" placeholder="Напр. Тинькофф">
+    </div>
+    <div class="field">
+      <label>Текущий баланс (₽)</label>
+      <input id="f-card-bal" type="number" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Иконка</label>
+      <div class="icons" id="f-card-icons"></div>
+    </div>
+    <div class="field">
+      <label>Цвет</label>
+      <div class="colors" id="f-card-colors"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm del-btn" id="del-card-btn" style="display:none">Удалить</button>
+      <button class="btn btn-ghost" id="cancel-card">Отмена</button>
+      <button class="btn btn-primary" id="save-card">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Category ══════════ -->
+<div class="overlay" id="mo-cat">
+  <div class="modal">
+    <div class="modal-title" id="mo-cat-title">Добавить категорию</div>
+    <div class="field">
+      <label>Название</label>
+      <input id="f-cat-name" placeholder="Напр. Продукты">
+    </div>
+    <div class="field">
+      <label>Месячный лимит (0 = без лимита)</label>
+      <input id="f-cat-limit" type="number" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Иконка</label>
+      <div class="icons" id="f-cat-icons"></div>
+    </div>
+    <div class="field">
+      <label>Цвет</label>
+      <div class="colors" id="f-cat-colors"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm del-btn" id="del-cat-btn" style="display:none">Удалить</button>
+      <button class="btn btn-ghost" id="cancel-cat">Отмена</button>
+      <button class="btn btn-primary" id="save-cat">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Expense ══════════ -->
+<div class="overlay" id="mo-exp">
+  <div class="modal">
+    <div class="modal-title" id="mo-exp-title">Добавить трату</div>
+    <div class="field">
+      <label>Сумма (₽)</label>
+      <input id="f-exp-amount" type="number" placeholder="0">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Категория</label>
+        <select id="f-exp-cat"></select>
+      </div>
+      <div class="field">
+        <label>Карта</label>
+        <select id="f-exp-card"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Дата</label>
+      <input id="f-exp-date" type="date">
+    </div>
+    <div class="field">
+      <label>Заметка (необязательно)</label>
+      <input id="f-exp-note" placeholder="Краткое описание">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm del-btn" id="del-exp-btn" style="display:none">Удалить</button>
+      <button class="btn btn-ghost" id="cancel-exp">Отмена</button>
+      <button class="btn btn-primary" id="save-exp">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Top-up ══════════ -->
+<div class="overlay" id="mo-topup">
+  <div class="modal">
+    <div class="modal-title" id="mo-topup-title">Пополнить карту</div>
+    <div class="field">
+      <label>Сумма пополнения (₽)</label>
+      <input id="f-topup-amount" type="number" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Карта</label>
+      <select id="f-topup-card"></select>
+    </div>
+    <div class="field">
+      <label>Дата</label>
+      <input id="f-topup-date" type="date">
+    </div>
+    <div class="field">
+      <label>Заметка (необязательно)</label>
+      <input id="f-topup-note" placeholder="Напр. Зарплата">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm del-btn" id="del-topup-btn" style="display:none">Удалить</button>
+      <button class="btn btn-ghost" id="cancel-topup">Отмена</button>
+      <button class="btn btn-success" id="save-topup">Пополнить</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script>
+'use strict';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const COLORS     = ['#6366f1','#8b5cf6','#ec4899','#ef4444','#f59e0b','#10b981','#06b6d4','#3b82f6','#f97316','#84cc16'];
+const CARD_ICONS = ['💳','🏦','💵','💴','💰','💎','🏧','🌟','🔷','🟣'];
+const CAT_ICONS  = ['🛒','🍕','🚗','🏠','💊','👕','🎬','✈️','🎮','📚','🐶','💡','🏋️','☕','🍺','🎁','💼','🏥','📱','🌿','🎵','🍔','🧾','⚽','🧴','🎓','🏖️','🔧','🐱','🚇'];
+const MONTHS     = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let db = { cards: [], categories: [], expenses: [] };
+let curPage  = 'dashboard';
+let curMonth = todayYM();
+let editing  = { card: null, cat: null, exp: null, topup: null };
+let pick     = { card: { icon: CARD_ICONS[0], color: COLORS[0] }, cat: { icon: CAT_ICONS[0], color: COLORS[3] } };
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+function todayYM() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function todayISO() { return new Date().toISOString().split('T')[0]; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function money(n) {
+  return new Intl.NumberFormat('ru-RU', { style:'currency', currency:'RUB', maximumFractionDigits:0 }).format(n||0);
+}
+function fmtMonth(ym) {
+  const [y,m] = ym.split('-');
+  return `${MONTHS[+m-1]} ${y}`;
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}.${m}.${y}`;
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Firebase ─────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAktch_1F1ujC1B9F94oPoTkyun4MuxzPQ",
+  authDomain: "family-tracker-b57f6.firebaseapp.com",
+  projectId: "family-tracker-b57f6",
+  storageBucket: "family-tracker-b57f6.firebasestorage.app",
+  messagingSenderId: "514864353959",
+  appId: "1:514864353959:web:adfbd198d4ed89bd9bc182"
+};
+
+firebase.initializeApp(firebaseConfig);
+const fsdb     = firebase.firestore();
+const cardsCol = fsdb.collection('cards');
+const catsCol  = fsdb.collection('categories');
+const txCol    = fsdb.collection('transactions');
+const INC      = (n) => firebase.firestore.FieldValue.increment(n);
+
+function startSync() {
+  let synced = { cards: false, cats: false, tx: false };
+  const loader = document.getElementById('app-loading');
+  function tryHide() {
+    if (synced.cards && synced.cats && synced.tx) loader.style.display = 'none';
+  }
+  cardsCol.onSnapshot(snap => {
+    db.cards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    synced.cards = true; tryHide(); renderAll();
+  }, err => console.error('cards:', err));
+  catsCol.onSnapshot(snap => {
+    db.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    synced.cats = true; tryHide(); renderAll();
+  }, err => console.error('cats:', err));
+  txCol.onSnapshot(snap => {
+    db.expenses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    synced.tx = true; tryHide(); renderAll();
+  }, err => console.error('tx:', err));
+}
+
+// ─── Queries ──────────────────────────────────────────────────────────────────
+function monthExps(ym)        { return db.expenses.filter(e => e.date && e.date.startsWith(ym)); }
+function catSpent(catId, ym)  { return monthExps(ym).filter(e => e.catId === catId && e.type !== 'topup').reduce((s,e) => s + (+e.amount||0), 0); }
+function totalSpent(ym)       { return monthExps(ym).filter(e => e.type !== 'topup').reduce((s,e) => s + (+e.amount||0), 0); }
+function totalBalance()       { return db.cards.reduce((s,c) => s + (+c.balance||0), 0); }
+function catById(id)          { return db.categories.find(c => c.id === id); }
+function cardById(id)         { return db.cards.find(c => c.id === id); }
+
+function totalLimitLeft(ym) {
+  const limited = db.categories.filter(c => +c.limit > 0);
+  if (!limited.length) return null;
+  return limited.reduce((s, c) => s + Math.max(0, +c.limit - catSpent(c.id, ym)), 0);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderNav();
+  renderDash();
+  renderCards();
+  renderCats();
+  renderExps();
+}
+
+function renderNav() {
+  document.querySelectorAll('.nav-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.p === curPage));
+  document.querySelectorAll('.page').forEach(el =>
+    el.classList.toggle('active', el.id === `pg-${curPage}`));
+}
+
+function renderDash() {
+  document.getElementById('m-label').textContent = fmtMonth(curMonth);
+  document.getElementById('d-month-sub').textContent = fmtMonth(curMonth);
+  document.getElementById('s-balance').textContent = money(totalBalance());
+  document.getElementById('s-spent').textContent   = money(totalSpent(curMonth));
+  const left = totalLimitLeft(curMonth);
+  document.getElementById('s-left').textContent = left !== null ? money(left) : '—';
+
+  // Balance breakdown by card
+  const balDetail = document.getElementById('s-balance-detail');
+  if (db.cards.length) {
+    balDetail.style.display = '';
+    balDetail.innerHTML = db.cards.map(c => `
+      <div class="stat-detail-row">
+        <span class="ico">${c.icon || '💳'}</span>
+        <span class="lbl">${esc(c.name)}</span>
+        <span class="amt" style="color:${c.color || 'var(--primary)'}">${money(c.balance)}</span>
+      </div>`).join('');
+  } else {
+    balDetail.style.display = 'none';
+  }
+
+  // Limits breakdown by category
+  const limDetail = document.getElementById('s-left-detail');
+  const limited = db.categories.filter(c => +c.limit > 0);
+  if (limited.length) {
+    limDetail.style.display = '';
+    limDetail.innerHTML = limited.map(c => {
+      const spent     = catSpent(c.id, curMonth);
+      const remaining = +c.limit - spent;
+      const over      = remaining < 0;
+      return `
+        <div class="stat-detail-row">
+          <span class="ico">${c.icon || '🏷️'}</span>
+          <span class="lbl">${esc(c.name)}</span>
+          <span class="amt" style="color:${over ? 'var(--danger)' : 'var(--success)'}">${money(Math.abs(remaining))}</span>
+        </div>`;
+    }).join('');
+  } else {
+    limDetail.style.display = 'none';
+  }
+
+  const dcats = document.getElementById('d-cats');
+  dcats.innerHTML = db.categories.length
+    ? db.categories.map(c => catRowHtml(c, curMonth)).join('')
+    : `<div class="empty"><div class="e-ico">🏷️</div><p>Добавьте категории</p></div>`;
+
+  const recent = [...db.expenses]
+    .filter(e => e.date && e.date.startsWith(curMonth))
+    .sort((a,b) => b.date.localeCompare(a.date))
+    .slice(0, 5);
+  const dexps = document.getElementById('d-exps');
+  dexps.innerHTML = recent.length
+    ? recent.map(expRowHtml).join('')
+    : `<div class="empty"><div class="e-ico">📝</div><p>Нет трат за ${fmtMonth(curMonth)}</p></div>`;
+}
+
+function catRowHtml(c, ym) {
+  const spent = catSpent(c.id, ym);
+  const limit = +c.limit || 0;
+  const pct   = limit > 0 ? Math.min(100, Math.round(spent/limit*100)) : 0;
+  const over  = limit > 0 && spent > limit;
+  const fill  = over ? '#ef4444' : pct > 75 ? '#f59e0b' : (c.color || '#6366f1');
+  const bg    = (c.color || '#6366f1') + '22';
+  return `
+    <div class="cat-item" onclick="openCatModal('${c.id}')">
+      <div class="cat-ico" style="background:${bg}">${c.icon || '🏷️'}</div>
+      <div class="cat-info">
+        <div class="cat-name">${esc(c.name)}</div>
+        ${limit > 0
+          ? `<div class="progress"><div class="progress-fill" style="width:${pct}%;background:${fill}"></div></div>
+             <div class="cat-meta">
+               <span>${money(spent)}</span>
+               <span style="color:${over?'var(--danger)':'inherit'}">${over?'⚠ превышено • ':''} лимит ${money(limit)}</span>
+             </div>`
+          : `<div style="font-size:12px;color:var(--muted);margin-top:3px">${money(spent)} • без лимита</div>`
+        }
+      </div>
+    </div>`;
+}
+
+function expRowHtml(e) {
+  if (e.type === 'topup') return topupRowHtml(e);
+  const cat  = catById(e.catId);
+  const card = cardById(e.cardId);
+  const bg   = (cat?.color || '#6366f1') + '22';
+  const sub  = [e.note, card?.name].filter(Boolean).join(' • ');
+  return `
+    <div class="exp-item" onclick="openExpModal('${e.id}')">
+      <div class="exp-ico" style="background:${bg}">${cat?.icon || '💸'}</div>
+      <div class="exp-info">
+        <div class="exp-cat">${esc(cat?.name || 'Без категории')}</div>
+        <div class="exp-note">${esc(sub)}</div>
+      </div>
+      <div class="exp-right">
+        <div class="exp-amount">−${money(e.amount)}</div>
+        <div class="exp-date">${fmtDate(e.date)}</div>
+      </div>
+    </div>`;
+}
+
+function topupRowHtml(e) {
+  const card = cardById(e.cardId);
+  const sub  = [e.note, card?.name].filter(Boolean).join(' • ');
+  return `
+    <div class="exp-item" onclick="openTopupModal(null,'${e.id}')">
+      <div class="exp-ico" style="background:#d1fae522">💚</div>
+      <div class="exp-info">
+        <div class="exp-cat" style="color:var(--success)">Пополнение</div>
+        <div class="exp-note">${esc(sub)}</div>
+      </div>
+      <div class="exp-right">
+        <div class="exp-amount" style="color:var(--success)">+${money(e.amount)}</div>
+        <div class="exp-date">${fmtDate(e.date)}</div>
+      </div>
+    </div>`;
+}
+
+function renderCards() {
+  const el = document.getElementById('cards-list');
+  el.innerHTML = db.cards.length
+    ? db.cards.map(c => `
+        <div class="bank-card-item">
+          <div class="bank-card-icon" style="background:${c.color+'22'}">${c.icon||'💳'}</div>
+          <div class="bank-card-info">
+            <div class="bank-card-name">${esc(c.name)}</div>
+            <div class="bank-card-sub">Текущий баланс</div>
+          </div>
+          <div class="bank-card-balance" style="color:${c.color||'var(--primary)'}">
+            ${money(c.balance)}
+          </div>
+          <button class="btn btn-success btn-sm" onclick="openTopupModal('${c.id}')">＋ Пополнить</button>
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="openCardModal('${c.id}')">✏️</button>
+        </div>`).join('')
+    : `<div class="empty"><div class="e-ico">💳</div><p>Добавьте карту или счёт</p></div>`;
+}
+
+function renderCats() {
+  const el = document.getElementById('cats-list');
+  el.innerHTML = db.categories.length
+    ? db.categories.map(c => catRowHtml(c, curMonth)).join('')
+    : `<div class="empty"><div class="e-ico">🏷️</div><p>Создайте категории трат</p></div>`;
+}
+
+function renderExps() {
+  const fCat   = document.getElementById('f-cat');
+  const fCard  = document.getElementById('f-card');
+  const fMonth = document.getElementById('f-month');
+  const selCat  = fCat.value;
+  const selCard = fCard.value;
+
+  fCat.innerHTML  = `<option value="">Все категории</option>` +
+    db.categories.map(c => `<option value="${c.id}" ${selCat===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  fCard.innerHTML = `<option value="">Все карты</option>` +
+    db.cards.map(c => `<option value="${c.id}" ${selCard===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+
+  if (!fMonth.value) fMonth.value = curMonth;
+
+  let list = [...db.expenses].sort((a,b) => b.date.localeCompare(a.date));
+  if (fCat.value)   list = list.filter(e => e.catId === fCat.value);
+  if (fCard.value)  list = list.filter(e => e.cardId === fCard.value);
+  if (fMonth.value) list = list.filter(e => e.date && e.date.startsWith(fMonth.value));
+
+  document.getElementById('exps-list').innerHTML = list.length
+    ? list.map(expRowHtml).join('')
+    : `<div class="empty"><div class="e-ico">🔍</div><p>Нет транзакций</p></div>`;
+}
+
+// ─── Pickers ──────────────────────────────────────────────────────────────────
+function renderColors(containerId, selected, key) {
+  document.getElementById(containerId).innerHTML =
+    COLORS.map(c => `<div class="c-swatch ${c===selected?'sel':''}"
+      style="background:${c}" onclick="pickColor('${containerId}','${c}','${key}')"></div>`).join('');
+}
+
+function renderIcons(containerId, icons, selected, key) {
+  document.getElementById(containerId).innerHTML =
+    icons.map(i => `<div class="i-chip ${i===selected?'sel':''}"
+      onclick="pickIcon('${containerId}','${encodeURIComponent(i)}','${key}')">${i}</div>`).join('');
+}
+
+function pickColor(cid, color, key) {
+  pick[key].color = color;
+  document.querySelectorAll(`#${cid} .c-swatch`).forEach(el =>
+    el.classList.toggle('sel', el.style.background === color));
+}
+
+function pickIcon(cid, enc, key) {
+  const icon = decodeURIComponent(enc);
+  pick[key].icon = icon;
+  document.querySelectorAll(`#${cid} .i-chip`).forEach(el =>
+    el.classList.toggle('sel', el.textContent === icon));
+}
+
+// ─── Modals ───────────────────────────────────────────────────────────────────
+function openOverlay(id) { document.getElementById(id).classList.add('open'); }
+function closeAll()       { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open')); }
+
+function openCardModal(id = null) {
+  editing.card = id;
+  const c = id ? cardById(id) : null;
+  document.getElementById('mo-card-title').textContent = id ? 'Редактировать карту' : 'Добавить карту';
+  document.getElementById('f-card-name').value = c?.name || '';
+  document.getElementById('f-card-bal').value  = c?.balance ?? '';
+  document.getElementById('del-card-btn').style.display = id ? '' : 'none';
+  pick.card = { icon: c?.icon || CARD_ICONS[0], color: c?.color || COLORS[0] };
+  renderIcons('f-card-icons', CARD_ICONS, pick.card.icon, 'card');
+  renderColors('f-card-colors', pick.card.color, 'card');
+  openOverlay('mo-card');
+  setTimeout(() => document.getElementById('f-card-name').focus(), 80);
+}
+
+function openCatModal(id = null) {
+  editing.cat = id;
+  const c = id ? catById(id) : null;
+  document.getElementById('mo-cat-title').textContent = id ? 'Редактировать категорию' : 'Добавить категорию';
+  document.getElementById('f-cat-name').value  = c?.name || '';
+  document.getElementById('f-cat-limit').value = c?.limit || '';
+  document.getElementById('del-cat-btn').style.display = id ? '' : 'none';
+  pick.cat = { icon: c?.icon || CAT_ICONS[0], color: c?.color || COLORS[3] };
+  renderIcons('f-cat-icons', CAT_ICONS, pick.cat.icon, 'cat');
+  renderColors('f-cat-colors', pick.cat.color, 'cat');
+  openOverlay('mo-cat');
+  setTimeout(() => document.getElementById('f-cat-name').focus(), 80);
+}
+
+function openExpModal(id = null) {
+  editing.exp = id;
+  const e = id ? db.expenses.find(x => x.id === id) : null;
+  document.getElementById('mo-exp-title').textContent = id ? 'Редактировать трату' : 'Добавить трату';
+  document.getElementById('f-exp-amount').value = e?.amount || '';
+  document.getElementById('f-exp-date').value   = e?.date || todayISO();
+  document.getElementById('f-exp-note').value   = e?.note || '';
+  document.getElementById('del-exp-btn').style.display = id ? '' : 'none';
+
+  const catSel  = document.getElementById('f-exp-cat');
+  const cardSel = document.getElementById('f-exp-card');
+  catSel.innerHTML  = db.categories.length
+    ? db.categories.map(c => `<option value="${c.id}" ${e?.catId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')
+    : '<option value="">Сначала добавьте категорию</option>';
+  cardSel.innerHTML = db.cards.length
+    ? db.cards.map(c => `<option value="${c.id}" ${e?.cardId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')
+    : '<option value="">Сначала добавьте карту</option>';
+
+  openOverlay('mo-exp');
+  setTimeout(() => document.getElementById('f-exp-amount').focus(), 80);
+}
+
+// ─── CRUD ─────────────────────────────────────────────────────────────────────
+async function saveCard() {
+  const name    = document.getElementById('f-card-name').value.trim();
+  const balance = parseFloat(document.getElementById('f-card-bal').value) || 0;
+  if (!name) { alert('Введите название карты'); return; }
+  const data = { name, balance, icon: pick.card.icon, color: pick.card.color };
+  if (editing.card) {
+    await cardsCol.doc(editing.card).update(data);
+  } else {
+    await cardsCol.add(data);
+  }
+  closeAll();
+}
+
+async function deleteCard() {
+  if (!editing.card || !confirm('Удалить карту?')) return;
+  await cardsCol.doc(editing.card).delete();
+  closeAll();
+}
+
+async function saveCat() {
+  const name  = document.getElementById('f-cat-name').value.trim();
+  const limit = parseFloat(document.getElementById('f-cat-limit').value) || 0;
+  if (!name) { alert('Введите название категории'); return; }
+  const data = { name, limit, icon: pick.cat.icon, color: pick.cat.color };
+  if (editing.cat) {
+    await catsCol.doc(editing.cat).update(data);
+  } else {
+    await catsCol.add(data);
+  }
+  closeAll();
+}
+
+async function deleteCat() {
+  if (!editing.cat || !confirm('Удалить категорию? Транзакции сохранятся.')) return;
+  await catsCol.doc(editing.cat).delete();
+  closeAll();
+}
+
+async function saveExp() {
+  const amount = parseFloat(document.getElementById('f-exp-amount').value);
+  const catId  = document.getElementById('f-exp-cat').value;
+  const cardId = document.getElementById('f-exp-card').value;
+  const date   = document.getElementById('f-exp-date').value;
+  const note   = document.getElementById('f-exp-note').value.trim();
+  if (!amount || amount <= 0) { alert('Введите корректную сумму'); return; }
+  if (!date) { alert('Выберите дату'); return; }
+  if (editing.exp) {
+    await txCol.doc(editing.exp).update({ amount, catId, cardId, date, note });
+  } else {
+    await txCol.add({ amount, catId, cardId, date, note });
+  }
+  closeAll();
+}
+
+async function deleteExp() {
+  if (!editing.exp || !confirm('Удалить транзакцию?')) return;
+  await txCol.doc(editing.exp).delete();
+  closeAll();
+}
+
+function openTopupModal(cardId = null, id = null) {
+  editing.topup = id;
+  const t   = id ? db.expenses.find(x => x.id === id) : null;
+  const cid = cardId || t?.cardId || db.cards[0]?.id || '';
+  document.getElementById('mo-topup-title').textContent = id ? 'Редактировать пополнение' : 'Пополнить карту';
+  document.getElementById('f-topup-amount').value = t?.amount || '';
+  document.getElementById('f-topup-date').value   = t?.date || todayISO();
+  document.getElementById('f-topup-note').value   = t?.note || '';
+  document.getElementById('del-topup-btn').style.display = id ? '' : 'none';
+  document.getElementById('f-topup-card').innerHTML =
+    db.cards.map(c => `<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('');
+  openOverlay('mo-topup');
+  setTimeout(() => document.getElementById('f-topup-amount').focus(), 80);
+}
+
+async function saveTopup() {
+  const amount = parseFloat(document.getElementById('f-topup-amount').value);
+  const cardId = document.getElementById('f-topup-card').value;
+  const date   = document.getElementById('f-topup-date').value;
+  const note   = document.getElementById('f-topup-note').value.trim();
+  if (!amount || amount <= 0) { alert('Введите сумму пополнения'); return; }
+  if (!date) { alert('Выберите дату'); return; }
+  if (!cardId) { alert('Выберите карту'); return; }
+
+  const batch = fsdb.batch();
+  if (editing.topup) {
+    const t = db.expenses.find(x => x.id === editing.topup);
+    if (t.cardId !== cardId) {
+      batch.update(cardsCol.doc(t.cardId), { balance: INC(-t.amount) });
+      batch.update(cardsCol.doc(cardId), { balance: INC(amount) });
+    } else {
+      batch.update(cardsCol.doc(cardId), { balance: INC(amount - +t.amount) });
+    }
+    batch.update(txCol.doc(editing.topup), { amount, cardId, date, note });
+  } else {
+    const txRef = txCol.doc();
+    batch.set(txRef, { type: 'topup', amount, cardId, date, note });
+    batch.update(cardsCol.doc(cardId), { balance: INC(amount) });
+  }
+  await batch.commit();
+  closeAll();
+}
+
+async function deleteTopup() {
+  if (!editing.topup || !confirm('Удалить пополнение? Баланс карты уменьшится.')) return;
+  const t = db.expenses.find(x => x.id === editing.topup);
+  if (t) {
+    const batch = fsdb.batch();
+    batch.delete(txCol.doc(editing.topup));
+    batch.update(cardsCol.doc(t.cardId), { balance: INC(-t.amount) });
+    await batch.commit();
+  }
+  closeAll();
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(el =>
+  el.addEventListener('click', () => { curPage = el.dataset.p; renderAll(); }));
+
+document.getElementById('prev-m').addEventListener('click', () => {
+  const [y,m] = curMonth.split('-').map(Number);
+  const d = new Date(y, m-2, 1);
+  curMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  renderDash(); renderCats();
+});
+document.getElementById('next-m').addEventListener('click', () => {
+  const [y,m] = curMonth.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  curMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  renderDash(); renderCats();
+});
+
+document.getElementById('add-card-btn').addEventListener('click', () => openCardModal());
+document.getElementById('add-cat-btn').addEventListener('click', () => openCatModal());
+document.getElementById('add-exp-btn').addEventListener('click', () => openExpModal());
+
+document.getElementById('save-card').addEventListener('click', saveCard);
+document.getElementById('save-cat').addEventListener('click', saveCat);
+document.getElementById('save-exp').addEventListener('click', saveExp);
+
+document.getElementById('del-card-btn').addEventListener('click', deleteCard);
+document.getElementById('del-cat-btn').addEventListener('click', deleteCat);
+document.getElementById('del-exp-btn').addEventListener('click', deleteExp);
+
+document.getElementById('cancel-card').addEventListener('click', closeAll);
+document.getElementById('cancel-cat').addEventListener('click', closeAll);
+document.getElementById('cancel-exp').addEventListener('click', closeAll);
+document.getElementById('save-topup').addEventListener('click', saveTopup);
+document.getElementById('del-topup-btn').addEventListener('click', deleteTopup);
+document.getElementById('cancel-topup').addEventListener('click', closeAll);
+
+document.querySelectorAll('.overlay').forEach(el =>
+  el.addEventListener('click', e => { if (e.target === el) closeAll(); }));
+
+document.getElementById('f-cat').addEventListener('change', renderExps);
+document.getElementById('f-card').addEventListener('change', renderExps);
+document.getElementById('f-month').addEventListener('change', renderExps);
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+startSync();
+</script>
+</body>
+</html>
