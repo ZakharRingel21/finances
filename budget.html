@@ -2,7 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Бюджет">
+  <meta name="theme-color" content="#6366f1">
   <title>Бюджет — Трекер трат</title>
   <style>
     :root {
@@ -22,6 +26,12 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg); color: var(--text);
       min-height: 100vh; display: flex;
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button, [role="button"], .nav-item, .cat-item, .exp-item, .bank-card-item,
+    .bnav-item, .i-chip, .c-swatch, .mnav-btn {
+      touch-action: manipulation;
     }
 
     /* ── Sidebar ── */
@@ -231,7 +241,7 @@
 
     /* ── FAB ── */
     .fab {
-      position: fixed; bottom: 24px; right: 24px; z-index: 100;
+      position: fixed; bottom: 24px; right: 20px; z-index: 100;
       width: 56px; height: 56px; border-radius: 50%;
       background: var(--primary); color: #fff;
       border: none; font-size: 28px; line-height: 1;
@@ -240,35 +250,91 @@
       transition: transform .15s, filter .15s;
     }
     .fab:hover { filter: brightness(1.12); transform: scale(1.07); }
-    .fab:active { transform: scale(.95); }
+    .fab:active { transform: scale(.93); }
 
     /* ── Bottom nav (mobile) ── */
     .bottom-nav {
       display: none;
       position: fixed; bottom: 0; left: 0; right: 0;
       background: var(--surface); border-top: 1px solid var(--border);
-      z-index: 50; padding: 6px 0 env(safe-area-inset-bottom);
+      z-index: 50;
+      padding: 6px 0 0;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
     .bottom-nav-inner {
       display: flex; justify-content: space-around; align-items: center;
     }
     .bnav-item {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
-      padding: 6px 12px; border-radius: 10px; cursor: pointer;
-      font-size: 11px; color: var(--muted); font-weight: 500;
-      transition: color .15s; flex: 1;
+      padding: 6px 8px; border-radius: 10px; cursor: pointer;
+      font-size: 10px; color: var(--muted); font-weight: 500;
+      transition: color .15s; flex: 1; min-height: 44px; justify-content: center;
     }
-    .bnav-item .ico { font-size: 20px; }
+    .bnav-item .ico { font-size: 22px; }
     .bnav-item.active { color: var(--primary); }
 
-    /* ── Responsive ── */
+    /* ── Responsive / iPhone ── */
     @media (max-width: 700px) {
       .sidebar { display: none; }
-      .main { margin-left: 0; padding: 16px; padding-bottom: 90px; }
+      .main {
+        margin-left: 0;
+        padding: 16px;
+        padding-top: max(16px, env(safe-area-inset-top));
+        padding-bottom: calc(74px + max(20px, env(safe-area-inset-bottom)));
+      }
       .stats-row { grid-template-columns: 1fr; }
       .grid-2 { grid-template-columns: 1fr; }
       .bottom-nav { display: block; }
-      .fab { bottom: 86px; }
+      .fab {
+        bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+        right: 20px;
+      }
+
+      /* Stat cards компактнее */
+      .stat-val { font-size: 22px; }
+      h1 { font-size: 19px; }
+
+      /* Шапка страницы */
+      .page-head { margin-bottom: 14px; }
+
+      /* Touch-таргеты для строк */
+      .exp-item, .cat-item { padding: 13px 0; }
+      .bank-card-item { padding: 14px 12px; gap: 10px; }
+
+      /* Модалка как нижняя шторка */
+      .overlay { align-items: flex-end; }
+      .modal {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 22px 22px 0 0;
+        padding: 8px 20px 20px;
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+        max-height: 95vh;
+        transform: translateY(100%) scale(1);
+      }
+      .overlay.open .modal { transform: translateY(0) scale(1); }
+
+      /* Ручка шторки */
+      .modal::before {
+        content: '';
+        display: block;
+        width: 36px; height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 0 auto 16px;
+      }
+      .modal-title { font-size: 16px; }
+
+      /* Фильтры в столбик */
+      .filter-bar { flex-direction: column; gap: 8px; }
+      .filter-bar select, .filter-bar input { width: 100%; }
+
+      /* Кнопки крупнее */
+      .btn { padding: 10px 16px; font-size: 14px; }
+      .btn-sm { padding: 8px 12px; font-size: 13px; }
+      .modal-foot { margin-top: 16px; gap: 10px; }
+      .modal-foot .btn { flex: 1; justify-content: center; }
+      .modal-foot .del-btn { flex: 0; }
     }
 
     /* ── Loading overlay ── */
