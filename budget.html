@@ -1091,6 +1091,7 @@ function drawBar() {
   const canvas = document.getElementById('an-bar');
   const body   = document.getElementById('an-bar-body');
   if (!body) return;
+  if (body.clientWidth === 0) { requestAnimationFrame(drawBar); return; }
 
   const N = 6;
   const [y0, m0] = curAnalyticsMonth.split('-').map(Number);
@@ -1103,7 +1104,7 @@ function drawBar() {
   const maxAmt  = Math.max(...amounts, 1);
 
   const dpr  = window.devicePixelRatio || 1;
-  const cssW = Math.max(200, body.clientWidth - 36);
+  const cssW = Math.max(200, body.clientWidth - 32);
   const cssH = 210;
   canvas.style.width  = cssW + 'px';
   canvas.style.height = cssH + 'px';
@@ -1157,27 +1158,27 @@ function drawBar() {
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     ctx.fillText(MONTHS[+mm - 1].slice(0, 3), cx, cssH - padB + 5);
 
-    // Amount label above bar
+    // Labels above bar
     if (amt > 0) {
-      ctx.fillStyle = isCur ? '#4f46e5' : '#94a3b8';
-      ctx.font      = 'bold 10px -apple-system,sans-serif';
+      const hasBadge = i > 0; // will draw growth or "new" badge
+      // Amount label — always 16px above bar top when there's a badge, else 4px
+      ctx.fillStyle    = isCur ? '#4f46e5' : '#94a3b8';
+      ctx.font         = 'bold 10px -apple-system,sans-serif';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(fmtK(amt), cx, by - (i > 0 && amounts[i-1] > 0 ? 16 : 3));
-    }
+      ctx.fillText(fmtK(amt), cx, by - (hasBadge ? 16 : 4));
 
-    // Growth vs previous month
-    if (i > 0 && amounts[i - 1] > 0 && amt > 0) {
-      const diff = (amt - amounts[i - 1]) / amounts[i - 1] * 100;
-      ctx.fillStyle    = diff > 2 ? '#ef4444' : diff < -2 ? '#10b981' : '#94a3b8';
-      ctx.font         = '600 10px -apple-system,sans-serif';
-      ctx.textBaseline = 'bottom';
-      const sign = diff > 2 ? '↑' : diff < -2 ? '↓' : '≈';
-      ctx.fillText(`${sign}${Math.abs(Math.round(diff))}%`, cx, by - 2);
-    } else if (i > 0 && amounts[i - 1] === 0 && amt > 0) {
-      ctx.fillStyle    = '#f59e0b';
-      ctx.font         = '600 10px -apple-system,sans-serif';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText('new', cx, by - 2);
+      // Growth badge (drawn closer to bar top)
+      if (i > 0 && amounts[i - 1] > 0) {
+        const diff = (amt - amounts[i - 1]) / amounts[i - 1] * 100;
+        ctx.fillStyle = diff > 2 ? '#ef4444' : diff < -2 ? '#10b981' : '#94a3b8';
+        ctx.font      = '600 10px -apple-system,sans-serif';
+        const sign    = diff > 2 ? '↑' : diff < -2 ? '↓' : '≈';
+        ctx.fillText(`${sign}${Math.abs(Math.round(diff))}%`, cx, by - 2);
+      } else if (i > 0 && amounts[i - 1] === 0) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.font      = '600 10px -apple-system,sans-serif';
+        ctx.fillText('new', cx, by - 2);
+      }
     }
   });
 }
