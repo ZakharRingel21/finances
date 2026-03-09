@@ -337,6 +337,44 @@
       .modal-foot .del-btn { flex: 0; }
     }
 
+    /* ── Analytics ── */
+    .an-chart-body { display: flex; flex-direction: column; padding: 16px 18px; }
+    .pie-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+    #an-pie { display: block; }
+    .an-legend-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 0; font-size: 13px; border-bottom: 1px solid var(--border);
+    }
+    .an-legend-row:last-child { border-bottom: none; }
+    .an-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .an-legend-name { flex: 1; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .an-legend-pct { color: var(--muted); font-size: 12px; min-width: 35px; text-align: right; flex-shrink: 0; }
+    .an-legend-amt { font-weight: 700; min-width: 80px; text-align: right; flex-shrink: 0; }
+    #an-bar { display: block; }
+    .an-growth { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 5px; vertical-align: middle; }
+    .an-growth.up { background: #fee2e2; color: var(--danger); }
+    .an-growth.dn { background: #d1fae5; color: var(--success); }
+    .an-growth.fl { background: var(--bg); color: var(--muted); }
+    .an-top-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .an-top-row:last-child { border-bottom: none; }
+    .an-top-ico { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .an-top-info { flex: 1; min-width: 0; }
+    .an-top-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .an-top-bar-wrap { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+    .an-top-bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+    .an-top-right { text-align: right; flex-shrink: 0; }
+    .an-top-amt { font-size: 14px; font-weight: 700; color: var(--danger); }
+    .an-top-pct { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .an-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .an-sum-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+    .an-sum-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .an-sum-val { font-size: 20px; font-weight: 700; }
+    .an-sum-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    @media (max-width: 700px) {
+      .an-summary { grid-template-columns: 1fr 1fr; }
+      .an-sum-val { font-size: 17px; }
+    }
+
     /* ── Loading overlay ── */
     #app-loading {
       position: fixed; inset: 0; background: var(--bg);
@@ -368,6 +406,7 @@
     <div class="nav-item" data-p="cards"><span class="ico">💳</span> Карты</div>
     <div class="nav-item" data-p="categories"><span class="ico">🏷️</span> Категории</div>
     <div class="nav-item" data-p="expenses"><span class="ico">📝</span> Транзакции</div>
+    <div class="nav-item" data-p="analytics"><span class="ico">📈</span> Аналитика</div>
   </nav>
 </aside>
 
@@ -451,6 +490,52 @@
     </div>
   </section>
 
+  <!-- Analytics -->
+  <section class="page" id="pg-analytics">
+    <div class="page-head">
+      <h1>Аналитика</h1>
+      <div class="month-nav">
+        <button class="mnav-btn" id="an-prev-m">‹</button>
+        <span id="an-m-label"></span>
+        <button class="mnav-btn" id="an-next-m">›</button>
+      </div>
+    </div>
+
+    <!-- Summary row -->
+    <div class="an-summary" id="an-summary"></div>
+
+    <div class="grid-2" style="margin-bottom:16px">
+      <!-- Pie chart -->
+      <div class="card">
+        <div class="card-head">
+          По категориям
+          <span id="an-month-sub" style="font-weight:400;color:var(--muted);font-size:12px"></span>
+        </div>
+        <div class="an-chart-body">
+          <div class="pie-wrap"><canvas id="an-pie"></canvas></div>
+          <div id="an-legend"></div>
+        </div>
+      </div>
+
+      <!-- Bar chart -->
+      <div class="card">
+        <div class="card-head">Расходы по месяцам</div>
+        <div class="an-chart-body" id="an-bar-body">
+          <canvas id="an-bar"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top categories with growth -->
+    <div class="card">
+      <div class="card-head">
+        Топ категорий
+        <span id="an-top-label" style="font-weight:400;color:var(--muted);font-size:12px"></span>
+      </div>
+      <div class="card-body" id="an-top-list"></div>
+    </div>
+  </section>
+
 </main>
 
 <!-- ══════════ FAB ══════════ -->
@@ -463,6 +548,7 @@
     <div class="bnav-item" data-p="cards"><span class="ico">💳</span>Карты</div>
     <div class="bnav-item" data-p="categories"><span class="ico">🏷️</span>Категории</div>
     <div class="bnav-item" data-p="expenses"><span class="ico">📝</span>Транзакции</div>
+    <div class="bnav-item" data-p="analytics"><span class="ico">📈</span>Аналитика</div>
   </div>
 </nav>
 
@@ -600,6 +686,7 @@ let db = { cards: [], categories: [], expenses: [] };
 let curPage  = 'dashboard';
 let curMonth = todayYM();
 let editing  = { card: null, cat: null, exp: null, topup: null };
+let curAnalyticsMonth = todayYM();
 let pick     = { card: { icon: CARD_ICONS[0], color: COLORS[0] }, cat: { icon: CAT_ICONS[0], color: COLORS[3] } };
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
@@ -683,6 +770,7 @@ function renderAll() {
   renderCards();
   renderCats();
   renderExps();
+  renderAnalytics();
 }
 
 function renderNav() {
@@ -860,6 +948,280 @@ function renderExps() {
   document.getElementById('exps-list').innerHTML = list.length
     ? list.map(expRowHtml).join('')
     : `<div class="empty"><div class="e-ico">🔍</div><p>Нет транзакций</p></div>`;
+}
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+function getPrevMonth(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function fmtK(n) {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return Math.round(n).toString();
+}
+
+function getCatSpendMap(ym) {
+  const map = {};
+  monthExps(ym).filter(e => e.type !== 'topup')
+    .forEach(e => { map[e.catId] = (map[e.catId] || 0) + (+e.amount || 0); });
+  return map;
+}
+
+function renderAnalytics() {
+  if (curPage !== 'analytics') return;
+  const lbl = fmtMonth(curAnalyticsMonth);
+  document.getElementById('an-m-label').textContent = lbl;
+  document.getElementById('an-month-sub').textContent = lbl;
+  document.getElementById('an-top-label').textContent = '— ' + lbl;
+  renderAnSummary();
+  drawPie();
+  drawBar();
+  renderTopCats();
+}
+
+function renderAnSummary() {
+  const cur  = totalSpent(curAnalyticsMonth);
+  const prev = totalSpent(getPrevMonth(curAnalyticsMonth));
+  const diff = prev > 0 ? (cur - prev) / prev * 100 : null;
+  const diffHtml = diff !== null
+    ? `<span class="an-growth ${diff > 2 ? 'up' : diff < -2 ? 'dn' : 'fl'}" style="font-size:12px;margin-top:3px;display:inline-flex">
+        ${diff > 2 ? '↑' : diff < -2 ? '↓' : '≈'} ${Math.abs(diff).toFixed(0)}% vs пред. мес.
+       </span>`
+    : `<span style="font-size:11px;color:var(--muted)">нет данных за пред. мес.</span>`;
+
+  const days = new Date(
+    +curAnalyticsMonth.split('-')[0],
+    +curAnalyticsMonth.split('-')[1], 0
+  ).getDate();
+  const avgDay = cur > 0 ? cur / days : 0;
+
+  const map = getCatSpendMap(curAnalyticsMonth);
+  const topEntry = Object.entries(map).sort((a, b) => b[1] - a[1])[0];
+  const topCat   = topEntry ? catById(topEntry[0]) : null;
+
+  document.getElementById('an-summary').innerHTML = `
+    <div class="an-sum-card">
+      <div class="an-sum-label">Потрачено</div>
+      <div class="an-sum-val" style="color:var(--danger)">${money(cur)}</div>
+      <div class="an-sum-sub">${diffHtml}</div>
+    </div>
+    <div class="an-sum-card">
+      <div class="an-sum-label">В день (сред.)</div>
+      <div class="an-sum-val" style="color:var(--warn)">${money(avgDay)}</div>
+      <div class="an-sum-sub">${days} дней в месяце</div>
+    </div>
+    <div class="an-sum-card">
+      <div class="an-sum-label">Топ категория</div>
+      <div class="an-sum-val" style="font-size:15px;margin-top:2px">${topCat ? topCat.icon + ' ' + esc(topCat.name) : '—'}</div>
+      <div class="an-sum-sub">${topEntry ? money(topEntry[1]) : ''}</div>
+    </div>`;
+}
+
+function drawPie() {
+  const canvas = document.getElementById('an-pie');
+  const SIZE   = 180;
+  const dpr    = window.devicePixelRatio || 1;
+  canvas.style.width  = SIZE + 'px';
+  canvas.style.height = SIZE + 'px';
+  canvas.width  = SIZE * dpr;
+  canvas.height = SIZE * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const map     = getCatSpendMap(curAnalyticsMonth);
+  const total   = Object.values(map).reduce((s, v) => s + v, 0);
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  const cx = SIZE / 2, cy = SIZE / 2, r = SIZE / 2 - 6, ri = r * 0.56;
+
+  if (total === 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#e2e8f0'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, ri, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '12px -apple-system,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Нет трат', cx, cy);
+    document.getElementById('an-legend').innerHTML = '';
+    return;
+  }
+
+  let angle = -Math.PI / 2;
+  entries.forEach(([catId, amount]) => {
+    const cat   = catById(catId);
+    const sweep = (amount / total) * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, angle, angle + sweep);
+    ctx.closePath();
+    ctx.fillStyle = cat?.color || '#6366f1';
+    ctx.fill();
+    // Gap line
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    angle += sweep;
+  });
+
+  // Donut hole
+  ctx.beginPath(); ctx.arc(cx, cy, ri, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+
+  // Center text
+  ctx.fillStyle = '#1e293b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 14px -apple-system,sans-serif';
+  ctx.fillText(money(total), cx, cy - 9);
+  ctx.fillStyle = '#64748b'; ctx.font = '11px -apple-system,sans-serif';
+  ctx.fillText('потрачено', cx, cy + 10);
+
+  // Legend
+  document.getElementById('an-legend').innerHTML = entries.map(([catId, amount]) => {
+    const cat = catById(catId);
+    const pct = Math.round(amount / total * 100);
+    return `<div class="an-legend-row">
+      <div class="an-legend-dot" style="background:${cat?.color || '#6366f1'}"></div>
+      <span class="an-legend-name">${esc(cat?.name || 'Без категории')}</span>
+      <span class="an-legend-pct">${pct}%</span>
+      <span class="an-legend-amt">${money(amount)}</span>
+    </div>`;
+  }).join('');
+}
+
+function drawBar() {
+  const canvas = document.getElementById('an-bar');
+  const body   = document.getElementById('an-bar-body');
+  if (!body) return;
+
+  const N = 6;
+  const [y0, m0] = curAnalyticsMonth.split('-').map(Number);
+  const months = [];
+  for (let i = N - 1; i >= 0; i--) {
+    const d = new Date(y0, m0 - 1 - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  const amounts = months.map(mo => totalSpent(mo));
+  const maxAmt  = Math.max(...amounts, 1);
+
+  const dpr  = window.devicePixelRatio || 1;
+  const cssW = Math.max(200, body.clientWidth - 36);
+  const cssH = 210;
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const padL = 8, padR = 8, padT = 38, padB = 40;
+  const chartW = cssW - padL - padR;
+  const chartH = cssH - padT - padB;
+  const colW   = chartW / N;
+  const barW   = Math.min(colW * 0.52, 36);
+
+  // Grid lines
+  ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const gy = padT + chartH - (i / 4) * chartH;
+    ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(padL + chartW, gy); ctx.stroke();
+  }
+
+  months.forEach((mo, i) => {
+    const amt    = amounts[i];
+    const barH   = amt > 0 ? Math.max(4, (amt / maxAmt) * chartH) : 0;
+    const bx     = padL + i * colW + (colW - barW) / 2;
+    const by     = padT + chartH - barH;
+    const isCur  = mo === curAnalyticsMonth;
+    const cx     = padL + i * colW + colW / 2;
+
+    // Bar
+    if (barH > 0) {
+      const grad = ctx.createLinearGradient(0, by, 0, by + barH);
+      if (isCur) { grad.addColorStop(0, '#6366f1'); grad.addColorStop(1, '#818cf8'); }
+      else        { grad.addColorStop(0, '#c7d2fe'); grad.addColorStop(1, '#ddd6fe'); }
+      ctx.fillStyle = grad;
+      const rad = Math.min(5, barH / 2);
+      ctx.beginPath();
+      ctx.moveTo(bx + rad, by);
+      ctx.lineTo(bx + barW - rad, by);
+      ctx.quadraticCurveTo(bx + barW, by, bx + barW, by + rad);
+      ctx.lineTo(bx + barW, by + barH); ctx.lineTo(bx, by + barH);
+      ctx.lineTo(bx, by + rad);
+      ctx.quadraticCurveTo(bx, by, bx + rad, by);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // Month label
+    const [, mm] = mo.split('-');
+    ctx.fillStyle = isCur ? '#6366f1' : '#64748b';
+    ctx.font      = `${isCur ? '700' : '400'} 11px -apple-system,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(MONTHS[+mm - 1].slice(0, 3), cx, cssH - padB + 5);
+
+    // Amount label above bar
+    if (amt > 0) {
+      ctx.fillStyle = isCur ? '#4f46e5' : '#94a3b8';
+      ctx.font      = 'bold 10px -apple-system,sans-serif';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(fmtK(amt), cx, by - (i > 0 && amounts[i-1] > 0 ? 16 : 3));
+    }
+
+    // Growth vs previous month
+    if (i > 0 && amounts[i - 1] > 0 && amt > 0) {
+      const diff = (amt - amounts[i - 1]) / amounts[i - 1] * 100;
+      ctx.fillStyle    = diff > 2 ? '#ef4444' : diff < -2 ? '#10b981' : '#94a3b8';
+      ctx.font         = '600 10px -apple-system,sans-serif';
+      ctx.textBaseline = 'bottom';
+      const sign = diff > 2 ? '↑' : diff < -2 ? '↓' : '≈';
+      ctx.fillText(`${sign}${Math.abs(Math.round(diff))}%`, cx, by - 2);
+    } else if (i > 0 && amounts[i - 1] === 0 && amt > 0) {
+      ctx.fillStyle    = '#f59e0b';
+      ctx.font         = '600 10px -apple-system,sans-serif';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('new', cx, by - 2);
+    }
+  });
+}
+
+function renderTopCats() {
+  const map      = getCatSpendMap(curAnalyticsMonth);
+  const prevMap  = getCatSpendMap(getPrevMonth(curAnalyticsMonth));
+  const total    = Object.values(map).reduce((s, v) => s + v, 0);
+  const entries  = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  const el       = document.getElementById('an-top-list');
+
+  if (!entries.length) {
+    el.innerHTML = `<div class="empty"><div class="e-ico">📊</div><p>Нет трат за ${fmtMonth(curAnalyticsMonth)}</p></div>`;
+    return;
+  }
+
+  const maxAmt = entries[0][1];
+  el.innerHTML = entries.map(([catId, amount]) => {
+    const cat    = catById(catId);
+    const pct    = total > 0 ? Math.round(amount / total * 100) : 0;
+    const barPct = maxAmt > 0 ? Math.round(amount / maxAmt * 100) : 0;
+    const bg     = (cat?.color || '#6366f1') + '22';
+    const prev   = prevMap[catId] || 0;
+    let growthHtml = '';
+    if (prev > 0) {
+      const d = (amount - prev) / prev * 100;
+      const cls  = d > 2 ? 'up' : d < -2 ? 'dn' : 'fl';
+      const sign = d > 2 ? '↑' : d < -2 ? '↓' : '≈';
+      growthHtml = `<span class="an-growth ${cls}">${sign}${Math.abs(d).toFixed(0)}%</span>`;
+    }
+    return `<div class="an-top-row">
+      <div class="an-top-ico" style="background:${bg}">${cat?.icon || '🏷️'}</div>
+      <div class="an-top-info">
+        <div class="an-top-name">${esc(cat?.name || 'Без категории')} ${growthHtml}</div>
+        <div class="an-top-bar-wrap">
+          <div class="an-top-bar-fill" style="width:${barPct}%;background:${cat?.color || '#6366f1'}"></div>
+        </div>
+      </div>
+      <div class="an-top-right">
+        <div class="an-top-amt">${money(amount)}</div>
+        <div class="an-top-pct">${pct}% от всего</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ─── Pickers ──────────────────────────────────────────────────────────────────
@@ -1108,6 +1470,23 @@ document.querySelectorAll('.overlay').forEach(el =>
 document.getElementById('f-cat').addEventListener('change', renderExps);
 document.getElementById('f-card').addEventListener('change', renderExps);
 document.getElementById('f-month').addEventListener('change', renderExps);
+
+document.getElementById('an-prev-m').addEventListener('click', () => {
+  const [y, m] = curAnalyticsMonth.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  curAnalyticsMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  renderAnalytics();
+});
+document.getElementById('an-next-m').addEventListener('click', () => {
+  const [y, m] = curAnalyticsMonth.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  curAnalyticsMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  renderAnalytics();
+});
+
+window.addEventListener('resize', () => {
+  if (curPage === 'analytics') drawBar();
+});
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 startSync();
