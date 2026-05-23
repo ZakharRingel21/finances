@@ -738,15 +738,15 @@ function startSync() {
   cardsCol.onSnapshot(snap => {
     db.cards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     synced.cards = true; tryHide(); renderAll();
-  }, err => console.error('cards:', err));
+  }, err => { console.error('cards:', err); synced.cards = true; tryHide(); });
   catsCol.onSnapshot(snap => {
     db.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     synced.cats = true; tryHide(); renderAll();
-  }, err => console.error('cats:', err));
+  }, err => { console.error('cats:', err); synced.cats = true; tryHide(); });
   txCol.onSnapshot(snap => {
     db.expenses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     synced.tx = true; tryHide(); renderAll();
-  }, err => console.error('tx:', err));
+  }, err => { console.error('tx:', err); synced.tx = true; tryHide(); });
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
