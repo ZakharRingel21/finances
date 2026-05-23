@@ -670,8 +670,6 @@
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 <script>
 'use strict';
 
@@ -712,41 +710,34 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ─── Firebase ─────────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyAktch_1F1ujC1B9F94oPoTkyun4MuxzPQ",
-  authDomain: "family-tracker-b57f6.firebaseapp.com",
-  projectId: "family-tracker-b57f6",
-  storageBucket: "family-tracker-b57f6.firebasestorage.app",
-  messagingSenderId: "514864353959",
-  appId: "1:514864353959:web:adfbd198d4ed89bd9bc182"
-};
-
-firebase.initializeApp(firebaseConfig);
-const fsdb     = firebase.firestore();
-const cardsCol = fsdb.collection('cards');
-const catsCol  = fsdb.collection('categories');
-const txCol    = fsdb.collection('transactions');
-const INC      = (n) => firebase.firestore.FieldValue.increment(n);
-
-function startSync() {
-  let synced = { cards: false, cats: false, tx: false };
+// ─── Data API (JSON-файл на диске через server.js) ────────────────────────────
+async function loadData() {
   const loader = document.getElementById('app-loading');
-  function tryHide() {
-    if (synced.cards && synced.cats && synced.tx) loader.style.display = 'none';
+  try {
+    const res  = await fetch('/api/data');
+    const data = await res.json();
+    db.cards      = data.cards      || [];
+    db.categories = data.categories || [];
+    db.expenses   = data.expenses   || [];
+  } catch (e) {
+    console.error('Ошибка загрузки данных:', e);
+  } finally {
+    loader.style.display = 'none';
+    renderAll();
   }
-  cardsCol.onSnapshot(snap => {
-    db.cards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    synced.cards = true; tryHide(); renderAll();
-  }, err => { console.error('cards:', err); synced.cards = true; tryHide(); });
-  catsCol.onSnapshot(snap => {
-    db.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    synced.cats = true; tryHide(); renderAll();
-  }, err => { console.error('cats:', err); synced.cats = true; tryHide(); });
-  txCol.onSnapshot(snap => {
-    db.expenses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    synced.tx = true; tryHide(); renderAll();
-  }, err => { console.error('tx:', err); synced.tx = true; tryHide(); });
+}
+
+async function saveData() {
+  try {
+    await fetch('/api/data', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(db),
+    });
+  } catch (e) {
+    console.error('Ошибка сохранения данных:', e);
+    alert('Не удалось сохранить данные. Убедитесь, что server.js запущен.');
+  }
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -1312,17 +1303,18 @@ async function saveCard() {
   if (!name) { alert('Введите название карты'); return; }
   const data = { name, balance, icon: pick.card.icon, color: pick.card.color };
   if (editing.card) {
-    await cardsCol.doc(editing.card).update(data);
+    const i = db.cards.findIndex(c => c.id === editing.card);
+    if (i >= 0) db.cards[i] = { ...db.cards[i], ...data };
   } else {
-    await cardsCol.add(data);
+    db.cards.push({ id: uid(), ...data });
   }
-  closeAll();
+  await saveData(); closeAll(); renderAll();
 }
 
 async function deleteCard() {
   if (!editing.card || !confirm('Удалить карту?')) return;
-  await cardsCol.doc(editing.card).delete();
-  closeAll();
+  db.cards = db.cards.filter(c => c.id !== editing.card);
+  await saveData(); closeAll(); renderAll();
 }
 
 async function saveCat() {
@@ -1331,17 +1323,18 @@ async function saveCat() {
   if (!name) { alert('Введите название категории'); return; }
   const data = { name, limit, icon: pick.cat.icon, color: pick.cat.color };
   if (editing.cat) {
-    await catsCol.doc(editing.cat).update(data);
+    const i = db.categories.findIndex(c => c.id === editing.cat);
+    if (i >= 0) db.categories[i] = { ...db.categories[i], ...data };
   } else {
-    await catsCol.add(data);
+    db.categories.push({ id: uid(), ...data });
   }
-  closeAll();
+  await saveData(); closeAll(); renderAll();
 }
 
 async function deleteCat() {
   if (!editing.cat || !confirm('Удалить категорию? Транзакции сохранятся.')) return;
-  await catsCol.doc(editing.cat).delete();
-  closeAll();
+  db.categories = db.categories.filter(c => c.id !== editing.cat);
+  await saveData(); closeAll(); renderAll();
 }
 
 async function saveExp() {
@@ -1353,17 +1346,18 @@ async function saveExp() {
   if (!amount || amount <= 0) { alert('Введите корректную сумму'); return; }
   if (!date) { alert('Выберите дату'); return; }
   if (editing.exp) {
-    await txCol.doc(editing.exp).update({ amount, catId, cardId, date, note });
+    const i = db.expenses.findIndex(e => e.id === editing.exp);
+    if (i >= 0) db.expenses[i] = { ...db.expenses[i], amount, catId, cardId, date, note };
   } else {
-    await txCol.add({ amount, catId, cardId, date, note });
+    db.expenses.push({ id: uid(), amount, catId, cardId, date, note });
   }
-  closeAll();
+  await saveData(); closeAll(); renderAll();
 }
 
 async function deleteExp() {
   if (!editing.exp || !confirm('Удалить транзакцию?')) return;
-  await txCol.doc(editing.exp).delete();
-  closeAll();
+  db.expenses = db.expenses.filter(e => e.id !== editing.exp);
+  await saveData(); closeAll(); renderAll();
 }
 
 function openTopupModal(cardId = null, id = null) {
@@ -1390,35 +1384,36 @@ async function saveTopup() {
   if (!date) { alert('Выберите дату'); return; }
   if (!cardId) { alert('Выберите карту'); return; }
 
-  const batch = fsdb.batch();
   if (editing.topup) {
     const t = db.expenses.find(x => x.id === editing.topup);
-    if (t.cardId !== cardId) {
-      batch.update(cardsCol.doc(t.cardId), { balance: INC(-t.amount) });
-      batch.update(cardsCol.doc(cardId), { balance: INC(amount) });
-    } else {
-      batch.update(cardsCol.doc(cardId), { balance: INC(amount - +t.amount) });
+    if (t) {
+      // откатываем старый баланс
+      const oldCard = db.cards.find(c => c.id === t.cardId);
+      if (oldCard) oldCard.balance = (+oldCard.balance || 0) - (+t.amount || 0);
+      // применяем новый
+      const newCard = db.cards.find(c => c.id === cardId);
+      if (newCard) newCard.balance = (+newCard.balance || 0) + amount;
+      // обновляем транзакцию
+      const i = db.expenses.findIndex(e => e.id === editing.topup);
+      if (i >= 0) db.expenses[i] = { ...db.expenses[i], amount, cardId, date, note };
     }
-    batch.update(txCol.doc(editing.topup), { amount, cardId, date, note });
   } else {
-    const txRef = txCol.doc();
-    batch.set(txRef, { type: 'topup', amount, cardId, date, note });
-    batch.update(cardsCol.doc(cardId), { balance: INC(amount) });
+    db.expenses.push({ id: uid(), type: 'topup', amount, cardId, date, note });
+    const card = db.cards.find(c => c.id === cardId);
+    if (card) card.balance = (+card.balance || 0) + amount;
   }
-  await batch.commit();
-  closeAll();
+  await saveData(); closeAll(); renderAll();
 }
 
 async function deleteTopup() {
   if (!editing.topup || !confirm('Удалить пополнение? Баланс карты уменьшится.')) return;
   const t = db.expenses.find(x => x.id === editing.topup);
   if (t) {
-    const batch = fsdb.batch();
-    batch.delete(txCol.doc(editing.topup));
-    batch.update(cardsCol.doc(t.cardId), { balance: INC(-t.amount) });
-    await batch.commit();
+    const card = db.cards.find(c => c.id === t.cardId);
+    if (card) card.balance = (+card.balance || 0) - (+t.amount || 0);
+    db.expenses = db.expenses.filter(e => e.id !== editing.topup);
   }
-  closeAll();
+  await saveData(); closeAll(); renderAll();
 }
 
 // ─── Events ───────────────────────────────────────────────────────────────────
@@ -1490,7 +1485,7 @@ window.addEventListener('resize', () => {
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-startSync();
+loadData();
 </script>
 </body>
 </html>
